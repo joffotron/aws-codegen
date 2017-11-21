@@ -22,4 +22,14 @@ defmodule AWS.CodeGen.Shape do
     expand(all[value], all)
   end
 
+  def expand_errors(nil, _), do: nil
+
+  def expand_errors(errors, all) do
+
+    Enum.into(errors, [], fn(entry) ->
+      {String.to_atom(entry["shape"]), expand(entry["shape"], all)}
+    end)
+  end
+
+
 end

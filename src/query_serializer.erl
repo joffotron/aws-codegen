@@ -1,6 +1,9 @@
 -module(query_serializer).
 -export([serialize/2]).
 
+serialize(Data, _) when map_size(Data) == 0 ->
+  "";
+
 serialize(Data, Rules) ->
 
   List = serialize(<<"">>, Data, Rules),
@@ -97,7 +100,6 @@ serialize(Name, Map, #{<<"type">> := <<"map">>} = Rules) ->
     ValueName = concat([Position, maps:get(<<"locationName">>, maps:get(<<"value">>, Rules, #{}), <<"value">>)]),
 
     [
-
       serialize(concat([Name, KeyName]), MapKey, maps:get(<<"key">>, Rules)),
 
       serialize(concat([Name, ValueName]), MapValue, maps:get(<<"value">>, Rules))
@@ -108,7 +110,7 @@ serialize(Name, Map, #{<<"type">> := <<"map">>} = Rules) ->
 
   ListWithIndex = lists:zip(lists:seq(1, length(List)), List),
 
-  lists:map(Fun, ListWithIndex),
+  lists:map(Fun, ListWithIndex).
 
 
 concat(List) ->

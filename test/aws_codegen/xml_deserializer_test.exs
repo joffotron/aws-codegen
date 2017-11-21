@@ -42,6 +42,26 @@ defmodule AWS.CodeGen.XmlDeserializerTest do
     end
 
 
+    test "returns nil missing keys in results" do
+
+      assert %{
+        "Nested" => %{"QueueUrl" => nil}
+      } = deserialize("
+          <Nested>
+          </Nested>", %{
+        "type" => "structure",
+        "members" => %{
+          "Nested" => %{
+            "type" => "structure",
+            "members" => %{
+              "QueueUrl" => %{"type" => "string"}
+            }
+          }
+        }
+      })
+    end
+
+
   end
 
 
@@ -412,6 +432,60 @@ defmodule AWS.CodeGen.XmlDeserializerTest do
 
     end
 
+  end
+
+  describe "errors" do
+
+    test "extract code" do
+
+      assert {
+        :InvalidParameter,
+        "Invalid parameter: NextToken",
+        "6afa5208-b06e-5262-b808-03d641cfce9c"
+      } = :xml_deserializer.deserialize_error(
+        '<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+          <Error>
+            <Type>Sender</Type>
+            <Code>InvalidParameter</Code>
+            <Message>Invalid parameter: NextToken</Message>
+          </Error>
+          <RequestId>6afa5208-b06e-5262-b808-03d641cfce9c</RequestId>
+        </ErrorResponse>')
+    end
+
+
+    test "extract exception attributes with wrapper" do
+
+      assert {
+        :InvalidParameter,
+        "Invalid parameter: NextToken",
+        "6afa5208-b06e-5262-b808-03d641cfce9c"
+      } = :xml_deserializer.deserialize_error(
+        '<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+          <Error>
+            <Type>Sender</Type>
+            <Code>InvalidParameter</Code>
+            <Message>Invalid parameter: NextToken</Message>
+          </Error>
+          <RequestId>6afa5208-b06e-5262-b808-03d641cfce9c</RequestId>
+        </ErrorResponse>')
+    end
+
+    test "extract exception attributes without wrapper" do
+
+       assert {
+         :InvalidParameter,
+         "Invalid parameter: NextToken",
+         "6afa5208-b06e-5262-b808-03d641cfce9c"
+       } = :xml_deserializer.deserialize_error('
+           <Error>
+             <Type>Sender</Type>
+             <Code>InvalidParameter</Code>
+             <Message>Invalid parameter: NextToken</Message>
+             <RequestId>6afa5208-b06e-5262-b808-03d641cfce9c</RequestId>
+           </Error>
+        ')
+     end
   end
 
 

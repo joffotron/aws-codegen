@@ -1,5 +1,6 @@
 -module(xml_deserializer).
 -export([deserialize/3]).
+-export([deserialize_error/1]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 -define(SCAN_OPTIONS, [{space,normalize}, {acc_fun, fun normalize_spaces/3}]).
@@ -32,19 +33,16 @@ parse(ByName, {RuleName, #{<<"type">> := Type} = Rule})
 
   KeyName = get_location_name(Rule, RuleName),
 
-  DecodedText = case maps:get(KeyName, ByName) of
+  DecodedText = case maps:get(KeyName, ByName, "") of
 
     [#xmlElement{attributes = Attributes, content = [#xmlText{value = Text}]}] ->
       case is_base64(Attributes) of true -> binary_to_list(base64:decode(Text)); false -> Text end;
 
-    [#xmlElement{content = []}] ->
+    _Else ->
       nil
   end,
 
   {parse_scalar(KeyName, <<"string">>), parse_scalar(DecodedText, Type)};
-
-
-
 
 
 
@@ -95,10 +93,6 @@ parse(ByName, {RuleName, #{<<"type">> := <<"map">>, <<"key">> := KeyRule, <<"val
   {RuleName, ParsedValue};
 
 
-
-
-
-
 parse(ByName, {RuleName, #{<<"type">> := <<"list">>, <<"member">> := MemberRule} = Rule}) ->
 
   Flattened = maps:get(<<"flattened">>, Rule, false),
@@ -130,20 +124,13 @@ parse(ByName, {RuleName, #{<<"type">> := <<"list">>, <<"member">> := MemberRule}
   {RuleName, Values};
 
 
-
 parse(ByName, {Name, #{<<"type">> := <<"structure">>, <<"members">> := Members}}) ->
 
   [#xmlElement{content = Children}] = maps:get(Name, ByName),
 
   ChildrenByName = by_name(Children),
 
-  Values = maps:fold(fun (RuleName, RuleValue, Acc) ->
-
-    {K, V} = parse(ChildrenByName, {RuleName, RuleValue}),
-
-    maps:put(K, V, Acc)
-
-  end, #{}, Members),
+  Values = fold_map_members(ChildrenByName, Members),
 
   {Name, Values}.
 
@@ -156,14 +143,35 @@ deserialize(Xml, ResultWrapper,  #{<<"type">> := <<"structure">>, <<"members">> 
 
   ByName = by_name(Content),
 
+  fold_map_members(ByName, Members).
+
+
+deserialize_error(Xml) ->
+
+  {#xmlElement{} = Root, _} = xmerl_scan:string(Xml, ?SCAN_OPTIONS),
+
+  {
+    list_to_atom(extract_text_from_path("//*/Code/text()", Root)),
+    list_to_binary(extract_text_from_path("//*/Message/text()", Root)),
+    list_to_binary(extract_text_from_path("//*/RequestId/text()", Root))
+  }.
+
+fold_map_members(ElementsByName, Members) ->
+
   maps:fold(fun (RuleName, RuleValue, Acc) ->
 
-    {K, V} = parse(ByName, {RuleName, RuleValue}),
+    {K, V} = parse(ElementsByName, {RuleName, RuleValue}),
 
     maps:put(K, V, Acc)
 
   end, #{}, Members).
 
+
+extract_text_from_path(Path, Element) ->
+
+  [#xmlText{value = Value}] = xmerl_xpath:string(Path, Element),
+
+  Value.
 
 
 get_location_name(Rule, Default) ->
