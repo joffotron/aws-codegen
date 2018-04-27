@@ -71,7 +71,7 @@ defmodule AWS.CodeGen do
     {:rest_json, "AWS.LexRuntime", "runtime.lex/2016-11-28", "lex_runtime.ex", []},
     {:rest_json, "AWS.Transcoder", "elastictranscoder/2012-09-25", "transcoder.ex", []},
     {:rest_json, "AWS.XRay", "xray/2016-04-12", "xray.ex", []},
-    {:xml, "AWS.Cloudformation", "cloudformation/2010-05-15", "cloudformation.ex", []}
+    {:xml, "AWS.CloudFormation", "cloudformation/2010-05-15", "cloudformation.ex", []}
   ]
 
   @erlang_services [
