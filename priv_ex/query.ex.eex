@@ -1,0 +1,35 @@
+# WARNING: DO NOT EDIT, AUTO-GENERATED CODE!
+# See https://github.com/jkakar/aws-codegen for more details.
+
+defmodule <%= context.module_name %> do
+  @moduledoc """
+<%= context.docstring %>
+  """
+<%= for action <- context.actions do %>
+  @doc """
+<%= action.docstring %>
+  """
+  def <%= action.function_name %>(input, options \\ []) do
+    request(whitelist_input(input, action), :cancel_update_stack)
+  end
+<% end %>
+
+
+  defp request(params, action) do
+    action_string = action |> Atom.to_string |> Macro.camelize
+
+    %ExAws.Operation.Query{
+      path: "/",
+      params: params |> filter_nil_params |> Map.put("Action", action_string) |> Map.put("Version", @version),
+      service: :cloudformation,
+      action: action,
+      parser: &ExAws.Cloudformation.Parsers.parse/3
+    }
+  end
+
+  defp whitelist_input(input, action) do
+    whitelist = action.input.shape.members |> Map.keys |> List.delete("ClientRequestToken")
+    input |> Map.take(whitelist)
+  end
+
+end

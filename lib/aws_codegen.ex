@@ -57,6 +57,8 @@ defmodule AWS.CodeGen do
     {:json, "AWS.WAF", "waf/2015-08-24", "waf.ex", []},
     {:json, "AWS.WAF.Regional", "waf-regional/2016-11-28", "waf_regional.ex", []},
     {:json, "AWS.Workspaces", "workspaces/2015-04-08", "workspaces.ex", []},
+    {:query, "AWS.SNS", "sns/2010-03-31", "sns.ex", []},
+    {:query, "AWS.S3", "s3/2006-03-01", "s3.ex", []},
     {:rest_json, "AWS.APIGateway", "apigateway/2015-07-09", "api_gateway.ex", [:strip_trailing_slash_in_url]},
     {:rest_json, "AWS.Batch", "batch/2016-08-10", "batch.ex", []},
     {:rest_json, "AWS.CloudDirectory", "clouddirectory/2016-05-10", "cloud_directory.ex", []},
@@ -71,7 +73,7 @@ defmodule AWS.CodeGen do
     {:rest_json, "AWS.LexRuntime", "runtime.lex/2016-11-28", "lex_runtime.ex", []},
     {:rest_json, "AWS.Transcoder", "elastictranscoder/2012-09-25", "transcoder.ex", []},
     {:rest_json, "AWS.XRay", "xray/2016-04-12", "xray.ex", []},
-    {:xml, "AWS.CloudFormation", "cloudformation/2010-05-15", "cloudformation.ex", []}
+    {:query, "AWS.CloudFormation", "cloudformation/2010-05-15", "cloudformation.ex", []}
   ]
 
   @erlang_services [
@@ -141,31 +143,25 @@ defmodule AWS.CodeGen do
     File.write(output_path, code)
   end
 
+  def generate_code(language, :query, module_name, api_spec_path, doc_spec_path,
+                    template_base_path, output_path, _options) do
+    template_path = Path.join(template_base_path, query_spec_template(language))
+    context = AWS.CodeGen.QueryService.load_context(language, module_name,
+                                                   api_spec_path, doc_spec_path)
+    code = AWS.CodeGen.QueryService.render(context, template_path)
+    File.write(output_path, code)
+  end
+
   def generate_code(language, :rest_json, module_name, api_spec_path,
                     doc_spec_path, template_base_path, output_path, options) do
-    template_path = Path.join(template_base_path, xml_spec_template(language))
+    template_path = Path.join(template_base_path, rest_json_spec_template(language))
     context = AWS.CodeGen.RestJSONService.load_context(language, module_name,
                                                        api_spec_path,
                                                        doc_spec_path, options)
+
     code = AWS.CodeGen.RestJSONService.render(context, template_path)
     File.write(output_path, code)
   end
-
-  def generate_code(language, :xml, module_name, api_spec_path, doc_spec_path,
-        template_base_path, output_path, options) do
-
-    template_path = Path.join(template_base_path, xml_spec_template(language))
-    context = AWS.CodeGen.XMLService.load_context(
-      language,
-      module_name,
-      api_spec_path,
-      doc_spec_path,
-      options
-    )
-    code = AWS.CodeGen.XMLService.render(context, template_path)
-    File.write(output_path, code)
-  end
-
 
   defp json_spec_template(:elixir) do
     "json.ex.eex"
@@ -177,8 +173,22 @@ defmodule AWS.CodeGen do
 
   defp rest_json_spec_template(:elixir), do: "rest_json.ex.eex"
   defp rest_json_spec_template(:erlang), do: "rest_json.erl.eex"
+  defp query_spec_template(:elixir) do
+    "query.ex.eex"
+  end
 
-  defp xml_spec_template(:elixir), do: "xml.ex.eex"
+  defp query_spec_template(:erlang) do
+    "query.erl.eex"
+  end
+
+
+  defp rest_json_spec_template(:elixir) do
+    "rest_json.ex.eex"
+  end
+
+  defp rest_json_spec_template(:erlang) do
+    "rest_json.erl.eex"
+  end
 
   defp make_spec_path(spec_base_path, spec_path, filename) do
     spec_base_path |> Path.join(spec_path) |> Path.join(filename)
